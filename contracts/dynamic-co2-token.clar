@@ -24,3 +24,31 @@
 (define-read-only (get-total-supply) (ok (var-get total-supply)))
 (define-read-only (get-balance (account principal))
     (ok (default-to u0 (map-get? balances account))))
+;; Error Constants
+(define-constant ERR-INVALID-VALUE (err u101))
+(define-constant ERR-INSUFFICIENT-BALANCE (err u102))
+
+;; Transfer function with optimized balance checking
+(define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
+    (let ((sender-balance (default-to u0 (map-get? balances sender))))
+        (begin
+            (asserts! (is-eq tx-sender sender) ERR-NOT-AUTHORIZED)
+            (asserts! (>= sender-balance amount) ERR-INSUFFICIENT-BALANCE)
+            (map-set balances sender (- sender-balance amount))
+            (map-set balances recipient (+ (default-to u0 (map-get? balances recipient)) amount))
+            (ok true))))
+
+;; Mint tokens dynamically
+(define-private (mint-tokens (amount uint))
+    (var-set total-supply (+ (var-get total-supply) amount))
+    (map-set balances (var-get contract-owner) 
+        (+ (default-to u0 (map-get? balances (var-get contract-owner))) amount))
+    (ok amount))
+
+;; Burn tokens to reduce supply
+(define-private (burn-tokens (amount uint))
+    (let ((owner-balance (default-to u0 (map-get? balances (var-get contract-owner)))))
+        (asserts! (>= owner-balance amount) ERR-INSUFFICIENT-BALANCE)
+        (var-set total-supply (- (var-get total-supply) amount))
+        (map-set balances (var-get contract-owner) (- owner-balance amount))
+        (ok amount)))
