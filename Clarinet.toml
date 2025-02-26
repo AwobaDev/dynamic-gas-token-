@@ -1,0 +1,45 @@
+# [project]
+# name = "dynamic-co2-token"
+# authors = []
+# description = ""
+# telemetry = true
+# requirements = []
+# [contracts.dynamic-co2-token]
+# path = "contracts/dynamic-co2-token.clar"
+# depends_on = []
+
+# [contracts.sip-010-trait]
+# path = "contracts/sip-010-trait.clar"
+# depends_on = []
+
+# [repl]
+# costs_version = 2
+# parser_version = 2
+
+# [repl.analysis]
+# passes = ["check_checker"]
+
+# [repl.analysis.check_checker]
+# strict = false
+# trusted_sender = false
+# trusted_caller = false
+# callee_filter = false
+
+
+[project]
+name = "dynamic-co2-token"
+description = "A dynamic CO2 token that adjusts based on emissions"
+authors = []
+telemetry = false
+requirements = []
+
+[contracts.sip-010-trait]
+path = "contracts/sip-010-trait.clar"
+clarity_version = 2
+epoch = 2.4
+
+[contracts.dynamic-co2-token]
+path = "contracts/dynamic-co2-token.clar"
+clarity_version = 2
+epoch = 2.4
+depends_on = ["sip-010-trait"]
