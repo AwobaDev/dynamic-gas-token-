@@ -52,3 +52,49 @@
         (var-set total-supply (- (var-get total-supply) amount))
         (map-set balances (var-get contract-owner) (- owner-balance amount))
         (ok amount)))
+;; CO2 Level Data Variables
+(define-data-var base-co2-level uint u410) 
+(define-data-var emission-factor uint u100000) ;; Adjustable emission factor
+
+;; Set CO2 level and mint tokens if increased
+(define-public (set-co2-level (new-level uint))
+    (begin
+        (asserts! (is-admin tx-sender) ERR-NOT-AUTHORIZED)
+        (asserts! (> new-level u0) ERR-INVALID-VALUE)
+        (let ((old-level (var-get base-co2-level))
+              (diff (if (> new-level old-level) (- new-level old-level) u0)))
+            (var-set base-co2-level new-level)
+            (if (> diff u0) 
+                (mint-tokens (* diff (var-get emission-factor)))
+                (ok u0)))))
+
+;; Allow contract owner to update emission factor dynamically
+(define-public (update-emission-factor (new-factor uint))
+    (begin
+        (asserts! (is-admin tx-sender) ERR-NOT-AUTHORIZED)
+        (var-set emission-factor new-factor)
+        (ok new-factor)))
+
+;; Distribute tokens to multiple eco-projects based on weighted allocation
+(define-public (distribute-to-projects (projects (list 10 principal)) (weights (list 10 uint)) (total-amount uint))
+    (begin
+        (asserts! (is-admin tx-sender) ERR-NOT-AUTHORIZED)
+        (asserts! (is-eq (len projects) (len weights)) ERR-INVALID-VALUE)
+        
+        ;; Compute total weight
+        (let ((weight-sum (fold (+) weights u0)))
+            (asserts! (> weight-sum u0) ERR-INVALID-VALUE)
+            
+            ;; Distribute tokens proportionally
+            (map distribute-project projects weights total-amount weight-sum))))
+
+(define-private (distribute-project (project principal) (weight uint) (total-amount uint) (weight-sum uint))
+    (let ((allocated-amount (/ (* total-amount weight) weight-sum)))
+        (transfer allocated-amount (var-get contract-owner) project none)))
+
+;; Allow contract owner to transfer ownership
+(define-public (transfer-ownership (new-owner principal))
+    (begin
+        (asserts! (is-admin tx-sender) ERR-NOT-AUTHORIZED)
+        (var-set contract-owner new-owner)
+        (ok new-owner)))
